@@ -16,7 +16,7 @@ final class AiPromptChainHealthCheck extends Check
 {
     private const string CACHE_KEY = 'health:ai:prompt_chain:v1';
 
-    /** @var \Closure|null */
+    /** @var Closure|null */
     private $resolveChainUsing = null;
 
     private ?int $cacheTtl = null;
@@ -95,7 +95,7 @@ final class AiPromptChainHealthCheck extends Check
      */
     private function probe(): array
     {
-        assert($this->resolveChainUsing instanceof \Closure);
+        assert($this->resolveChainUsing instanceof Closure);
 
         /** @var list<array{provider: string, model: string}> $chain */
         $chain = ($this->resolveChainUsing)();
