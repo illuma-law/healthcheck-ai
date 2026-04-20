@@ -3,12 +3,12 @@
 declare(strict_types=1);
 
 use IllumaLaw\HealthCheckAi\AiPromptChainHealthCheck;
-use IllumaLaw\HealthCheckAi\Tests\TestCase;
 use Laravel\Ai\Ai;
 use Laravel\Ai\AnonymousAgent;
+use Laravel\Ai\Responses\Data\Meta;
+use Laravel\Ai\Responses\Data\Usage;
+use Laravel\Ai\Responses\TextResponse;
 use Spatie\Health\Enums\Status;
-
-uses(TestCase::class);
 
 it('fails if chain resolver is missing', function () {
     $result = AiPromptChainHealthCheck::new()->run();
@@ -28,7 +28,7 @@ it('skips when chain is empty', function () {
 
 it('succeeds when primary prompt succeeds', function () {
     Ai::fakeAgent(AnonymousAgent::class, [
-        'OK',
+        new TextResponse('OK', new Usage(0, 0, 0), new Meta('openai', 'gpt-4o')),
     ]);
 
     $result = AiPromptChainHealthCheck::new()
@@ -46,10 +46,10 @@ it('warns when primary fails but fallback succeeds', function () {
     Ai::fakeAgent(AnonymousAgent::class, function () use (&$called) {
         $called++;
         if ($called === 1) {
-            throw new \Exception('Primary failed');
+            throw new Exception('Primary failed');
         }
 
-        return 'OK';
+        return new TextResponse('OK', new Usage(0, 0, 0), new Meta('anthropic', 'ok'));
     });
 
     $result = AiPromptChainHealthCheck::new()
@@ -65,7 +65,7 @@ it('warns when primary fails but fallback succeeds', function () {
 
 it('fails when all prompts fail', function () {
     Ai::fakeAgent(AnonymousAgent::class, function () {
-        throw new \Exception('All failed');
+        throw new Exception('All failed');
     });
 
     $result = AiPromptChainHealthCheck::new()
@@ -81,7 +81,7 @@ it('fails when all prompts fail', function () {
 
 it('can be configured with fluent methods', function () {
     Ai::fakeAgent(AnonymousAgent::class, [
-        'OK',
+        new TextResponse('OK', new Usage(0, 0, 0), new Meta('openai', 'gpt-4o')),
     ]);
 
     $check = AiPromptChainHealthCheck::new()
@@ -97,3 +97,18 @@ it('can be configured with fluent methods', function () {
     expect($result->status)->toEqual(Status::ok())
         ->and($result->meta['cached'])->toBeTrue();
 });
+
+it('fails when resolver is not callable', function () {
+    $check = AiPromptChainHealthCheck::new();
+
+    $ref = new ReflectionClass($check);
+    $prop = $ref->getProperty('resolveChainUsing');
+    $prop->setAccessible(true);
+    $prop->setValue($check, 'not-a-callable');
+
+    $result = $check->run();
+    expect($result->status)->toEqual(Status::skipped())
+        ->and($result->shortSummary)->toBe('Skipped');
+});
+
+

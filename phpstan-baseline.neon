@@ -1,0 +1,25 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to an undefined static method Laravel\\Ai\\Ai\:\:fakeEmbeddings\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 5
+			path: tests/AiEmbeddingChainHealthCheckTest.php
+
+		-
+			message: '#^Class Laravel\\Ai\\Responses\\EmbeddingsResponse constructor invoked with 1 parameter, 3 required\.$#'
+			identifier: arguments.count
+			count: 4
+			path: tests/AiEmbeddingChainHealthCheckTest.php
+
+		-
+			message: '#^Call to an undefined static method Laravel\\Ai\\Ai\:\:fakeAgent\(\)\.$#'
+			identifier: staticMethod.notFound
+			count: 4
+			path: tests/AiPromptChainHealthCheckTest.php
+
+		-
+			message: '#^Instantiated class Laravel\\Ai\\Responses\\PromptResponse not found\.$#'
+			identifier: class.notFound
+			count: 3
+			path: tests/AiPromptChainHealthCheckTest.php

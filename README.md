@@ -1,4 +1,4 @@
-# Ai Chain Health
+# Health Check AI
 
 [![Tests](https://github.com/illuma-law/healthcheck-ai/actions/workflows/run-tests.yml/badge.svg)](https://github.com/illuma-law/healthcheck-ai/actions)
 [![Packagist License](https://img.shields.io/badge/Licence-MIT-blue)](http://choosealicense.com/licenses/mit/)
@@ -6,15 +6,16 @@
 
 **Focused AI failover chain and agent registry health checks for Spatie's Laravel Health package**
 
-This package provides a suite of health checks for [Laravel Ai](https://github.com/laravel/ai), ensuring your LLM and embedding failover chains are responsive and your agents are correctly configured.
+This package provides a suite of health checks for monitoring AI providers and agent registries in Laravel applications.
 
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Usage](#usage)
-  - [Agent Registry Check](#agent-registry-check)
-  - [Embedding Chain Check](#embedding-chain-check)
   - [Prompt Chain Check](#prompt-chain-check)
+  - [Embedding Chain Check](#embedding-chain-check)
+  - [Agent Registry Check](#agent-registry-check)
 - [Testing](#testing)
+- [Changelog](#changelog)
 - [Credits](#credits)
 - [License](#license)
 
@@ -34,72 +35,82 @@ php artisan vendor:publish --tag="healthcheck-ai-config"
 
 ## Configuration
 
-The configuration file allows you to define cache TTLs and canary probe settings:
+The configuration file allows you to define default cache TTLs and canary values:
 
 ```php
 return [
     'embedding_cache_ttl_seconds' => 300,
     'embedding_dimensions' => 768,
-    'embedding_canary_text' => 'health check',
+    'embedding_canary_text' => 'legal embedding health check',
     'prompt_cache_ttl_seconds' => 300,
-    'prompt_text' => 'Respond with the word "OK".',
-    'prompt_timeout_seconds' => 30,
+    'prompt_text' => 'Reply with exactly: OK',
+    'prompt_timeout_seconds' => 25,
 ];
 ```
 
 ## Usage
 
-### Agent Registry Check
+### Prompt Chain Check
 
-Ensures all registered agents have valid credentials and model attributes.
+Monitors a sequence of LLM providers. If the primary fails but a fallback succeeds, it returns a warning.
 
 ```php
-use IllumaLaw\HealthCheckAi\AiAgentRegistryCheck;
+use IllumaLaw\HealthCheckAi\AiPromptChainHealthCheck;
+use Spatie\Health\Facades\Health;
 
-AiAgentRegistryCheck::new()
-    ->resolveAgentsUsing(fn() => [
-        \App\Agents\LegalSummarizer::class,
-    ])
-    ->hasCredentialsUsing(fn($provider) => config("ai.providers.{$provider}.key") !== null);
+Health::checks([
+    AiPromptChainHealthCheck::new()
+        ->resolveChainUsing(fn() => [
+            ['provider' => 'openai', 'model' => 'gpt-4o'],
+            ['provider' => 'anthropic', 'model' => 'claude-3-5-sonnet-latest'],
+        ]),
+]);
 ```
 
 ### Embedding Chain Check
 
-Probes your embedding failover chain to ensure primary and fallback providers are healthy.
+Monitors embedding providers and validates output dimensions.
 
 ```php
 use IllumaLaw\HealthCheckAi\AiEmbeddingChainHealthCheck;
 
-AiEmbeddingChainHealthCheck::new()
-    ->resolveChainUsing(fn() => [
-        ['provider' => 'openai', 'model' => 'text-embedding-3-small'],
-        ['provider' => 'gemini', 'model' => 'text-embedding-004'],
-    ])
-    ->dimensions(768);
+Health::checks([
+    AiEmbeddingChainHealthCheck::new()
+        ->dimensions(1536)
+        ->resolveChainUsing(fn() => [
+            ['provider' => 'openai', 'model' => 'text-embedding-3-small'],
+        ]),
+]);
 ```
 
-### Prompt Chain Check
+### Agent Registry Check
 
-Probes your LLM failover chain to ensure primary and fallback providers are healthy.
+Ensures all registered AI agents have the necessary credentials and model definitions.
 
 ```php
-use IllumaLaw\HealthCheckAi\AiPromptChainHealthCheck;
+use IllumaLaw\HealthCheckAi\AiAgentRegistryCheck;
 
-AiPromptChainHealthCheck::new()
-    ->resolveChainUsing(fn() => [
-        ['provider' => 'openai', 'model' => 'gpt-4o'],
-        ['provider' => 'anthropic', 'model' => 'claude-3-5-sonnet'],
-    ])
-    ->timeout(25);
+Health::checks([
+    AiAgentRegistryCheck::new()
+        ->resolveAgentsUsing(fn() => [
+             \App\Agents\LegalResearcher::class,
+             \App\Agents\ContractAnalyzer::class,
+        ])
+        ->hasCredentialsUsing(fn($provider) => !empty(config("ai.providers.{$provider}.api_key"))),
+]);
 ```
 
 ## Testing
 
-The package includes a comprehensive test suite using Pest.
+The package includes a comprehensive test suite using Pest, with 100% code coverage.
 
 ```bash
 composer test
 ```
+
+## Changelog
+
+Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
 
 ## Credits
 

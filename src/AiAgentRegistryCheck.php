@@ -37,6 +37,7 @@ final class AiAgentRegistryCheck extends Check
             return Result::make()->failed('Missing required resolvers for AiAgentRegistryCheck');
         }
 
+        /** @var list<class-string> $agents */
         $agents = ($this->resolveAgentsUsing)();
         $missingCredentials = [];
         $missingModel = [];
@@ -52,7 +53,8 @@ final class AiAgentRegistryCheck extends Check
                 continue;
             }
 
-            $provider = $providerAttrs[0]->newInstance()->value;
+            $providerValue = $providerAttrs[0]->newInstance()->value;
+            $provider = is_scalar($providerValue) ? (string) $providerValue : 'unknown';
 
             if (! ($this->hasCredentialsUsing)($provider)) {
                 $missingCredentials[] = "{$agentClass} ({$provider})";
@@ -67,31 +69,37 @@ final class AiAgentRegistryCheck extends Check
         }
 
         $meta = [
-            'agents_checked'             => count($agents),
+            'agents_checked' => count($agents),
             'without_provider_attribute' => array_slice($withoutProvider, 0, 20),
-            'missing_model_attribute'    => array_slice($missingModel, 0, 20),
+            'missing_model_attribute' => array_slice($missingModel, 0, 20),
         ];
 
         $result = Result::make()->meta($meta);
 
         if ($missingCredentials !== []) {
+            $message = __('healthcheck-ai::messages.agent_registry.missing_credentials', [
+                'agents' => implode('; ', array_slice($missingCredentials, 0, 6)).(count($missingCredentials) > 6 ? '…' : ''),
+            ]);
+
             return $result
-                ->failed(__('healthcheck-ai::messages.agent_registry.missing_credentials', [
-                    'agents' => implode('; ', array_slice($missingCredentials, 0, 6)).(count($missingCredentials) > 6 ? '…' : ''),
-                ]))
+                ->failed(is_string($message) ? $message : 'Missing AI credentials')
                 ->shortSummary(count($missingCredentials).' issue(s)');
         }
 
         if ($missingModel !== []) {
+            $message = __('healthcheck-ai::messages.agent_registry.missing_model', [
+                'agents' => implode('; ', array_slice($missingModel, 0, 6)).(count($missingModel) > 6 ? '…' : ''),
+            ]);
+
             return $result
-                ->warning(__('healthcheck-ai::messages.agent_registry.missing_model', [
-                    'agents' => implode('; ', array_slice($missingModel, 0, 6)).(count($missingModel) > 6 ? '…' : ''),
-                ]))
+                ->warning(is_string($message) ? $message : 'Missing model attributes')
                 ->shortSummary(count($missingModel).' hint(s)');
         }
 
+        $okMessage = __('healthcheck-ai::messages.agent_registry.ok');
+
         return $result
-            ->ok(__('healthcheck-ai::messages.agent_registry.ok'))
+            ->ok(is_string($okMessage) ? $okMessage : 'Agent registry is healthy')
             ->shortSummary('OK');
     }
 }

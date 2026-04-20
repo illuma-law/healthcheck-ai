@@ -3,21 +3,10 @@
 declare(strict_types=1);
 
 use IllumaLaw\HealthCheckAi\AiAgentRegistryCheck;
-use IllumaLaw\HealthCheckAi\Tests\TestCase;
-use Laravel\Ai\Attributes\Model;
-use Laravel\Ai\Attributes\Provider;
+use IllumaLaw\HealthCheckAi\Tests\Mocks\MissingModelAgent;
+use IllumaLaw\HealthCheckAi\Tests\Mocks\NoProviderAgent;
+use IllumaLaw\HealthCheckAi\Tests\Mocks\ValidAgent;
 use Spatie\Health\Enums\Status;
-
-uses(TestCase::class);
-
-#[Provider('openai')]
-#[Model('gpt-4')]
-class ValidAgent {}
-
-#[Provider('anthropic')]
-class MissingModelAgent {}
-
-class NoProviderAgent {}
 
 it('fails if resolvers are missing', function () {
     $result = AiAgentRegistryCheck::new()->run();

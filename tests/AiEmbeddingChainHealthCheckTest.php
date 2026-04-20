@@ -3,12 +3,10 @@
 declare(strict_types=1);
 
 use IllumaLaw\HealthCheckAi\AiEmbeddingChainHealthCheck;
-use IllumaLaw\HealthCheckAi\Tests\TestCase;
-use Illuminate\Support\Facades\Cache;
 use Laravel\Ai\Ai;
+use Laravel\Ai\Responses\Data\Meta;
+use Laravel\Ai\Responses\EmbeddingsResponse;
 use Spatie\Health\Enums\Status;
-
-uses(TestCase::class);
 
 it('fails if chain resolver is missing', function () {
     $result = AiEmbeddingChainHealthCheck::new()->run();
@@ -19,7 +17,7 @@ it('fails if chain resolver is missing', function () {
 
 it('fails when no providers are configured', function () {
     $result = AiEmbeddingChainHealthCheck::new()
-        ->resolveChainUsing(fn() => [])
+        ->resolveChainUsing(fn () => [])
         ->run();
 
     expect($result->status)->toEqual(Status::failed())
@@ -28,12 +26,12 @@ it('fails when no providers are configured', function () {
 
 it('succeeds when primary provider is healthy', function () {
     Ai::fakeEmbeddings([
-        [array_fill(0, 768, 0.1)]
+        new EmbeddingsResponse([array_fill(0, 768, 0.1)], 0, new Meta('openai', 'text-embedding-3-small')),
     ]);
 
     $result = AiEmbeddingChainHealthCheck::new()
-        ->resolveChainUsing(fn() => [
-            ['provider' => 'openai', 'model' => 'text-embedding-3-small']
+        ->resolveChainUsing(fn () => [
+            ['provider' => 'openai', 'model' => 'text-embedding-3-small'],
         ])
         ->run();
 
@@ -43,18 +41,19 @@ it('succeeds when primary provider is healthy', function () {
 
 it('warns when primary fails but fallback succeeds', function () {
     $called = 0;
-    Ai::fakeEmbeddings(function() use (&$called) {
+    Ai::fakeEmbeddings(function () use (&$called) {
         $called++;
         if ($called === 1) {
-            throw new \Exception('Primary failed');
+            throw new Exception('Primary failed');
         }
-        return [array_fill(0, 768, 0.1)];
+
+        return new EmbeddingsResponse([array_fill(0, 768, 0.1)], 0, new Meta('gemini', 'ok'));
     });
 
     $result = AiEmbeddingChainHealthCheck::new()
-        ->resolveChainUsing(fn() => [
+        ->resolveChainUsing(fn () => [
             ['provider' => 'openai', 'model' => 'fail'],
-            ['provider' => 'gemini', 'model' => 'ok']
+            ['provider' => 'gemini', 'model' => 'ok'],
         ])
         ->run();
 
@@ -63,14 +62,14 @@ it('warns when primary fails but fallback succeeds', function () {
 });
 
 it('fails when all providers fail', function () {
-    Ai::fakeEmbeddings(function() {
-        throw new \Exception('Failed');
+    Ai::fakeEmbeddings(function () {
+        throw new Exception('Failed');
     });
 
     $result = AiEmbeddingChainHealthCheck::new()
-        ->resolveChainUsing(fn() => [
+        ->resolveChainUsing(fn () => [
             ['provider' => 'openai', 'model' => 'fail1'],
-            ['provider' => 'gemini', 'model' => 'fail2']
+            ['provider' => 'gemini', 'model' => 'fail2'],
         ])
         ->run();
 
@@ -80,29 +79,32 @@ it('fails when all providers fail', function () {
 
 it('fails on dimension mismatch', function () {
     Ai::fakeEmbeddings([
-        [array_fill(0, 512, 0.1)] // Expected 768
+        new EmbeddingsResponse([array_fill(0, 512, 0.1)], 0, new Meta('openai', 'wrong-dim')),
     ]);
 
     $result = AiEmbeddingChainHealthCheck::new()
-        ->resolveChainUsing(fn() => [
-            ['provider' => 'openai', 'model' => 'wrong-dim']
+        ->resolveChainUsing(fn () => [
+            ['provider' => 'openai', 'model' => 'wrong-dim'],
         ])
         ->run();
 
-    expect($result->status)->toEqual(Status::failed())
-        ->and($result->meta['steps'][0]['status'])->toBe('dimension_mismatch');
+    expect($result->status)->toEqual(Status::failed());
+
+    /** @var array<int, array<string, mixed>> $steps */
+    $steps = $result->meta['steps'] ?? [];
+    expect($steps[0]['status'])->toBe('dimension_mismatch');
 });
 
 it('can be configured with fluent methods', function () {
     Ai::fakeEmbeddings([
-        [array_fill(0, 512, 0.1)]
+        new EmbeddingsResponse([array_fill(0, 512, 0.1)], 0, new Meta('openai', 'text-embedding-3-small')),
     ]);
 
     $check = AiEmbeddingChainHealthCheck::new()
         ->dimensions(512)
         ->cacheTtl(600)
-        ->resolveChainUsing(fn() => [
-            ['provider' => 'openai', 'model' => 'text-embedding-3-small']
+        ->resolveChainUsing(fn () => [
+            ['provider' => 'openai', 'model' => 'text-embedding-3-small'],
         ]);
 
     expect($check)->toBeInstanceOf(AiEmbeddingChainHealthCheck::class);
@@ -110,4 +112,21 @@ it('can be configured with fluent methods', function () {
     $result = $check->run();
     expect($result->status)->toEqual(Status::ok())
         ->and($result->meta['dimensions'])->toBe(512);
+});
+
+it('fails when embeddings response is empty', function () {
+    Ai::fakeEmbeddings([
+        new EmbeddingsResponse([], 0, new Meta('openai', 'empty')),
+    ]);
+
+    $result = AiEmbeddingChainHealthCheck::new()
+        ->resolveChainUsing(fn () => [
+            ['provider' => 'openai', 'model' => 'empty'],
+        ])
+        ->run();
+
+    expect($result->status)->toEqual(Status::failed());
+    /** @var array<int, array<string, mixed>> $steps */
+    $steps = $result->meta['steps'] ?? [];
+    expect($steps[0]['status'])->toBe('dimension_mismatch');
 });

@@ -7,7 +7,7 @@ namespace IllumaLaw\HealthCheckAi;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
-final class AiChainHealthServiceProvider extends PackageServiceProvider
+final class HealthCheckAiServiceProvider extends PackageServiceProvider
 {
     public function configurePackage(Package $package): void
     {
