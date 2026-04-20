@@ -41,7 +41,7 @@ The configuration file allows you to define default cache TTLs and canary values
 return [
     'embedding_cache_ttl_seconds' => 300,
     'embedding_dimensions' => 768,
-    'embedding_canary_text' => 'legal embedding health check',
+    'embedding_canary_text' => 'AI embedding health check',
     'prompt_cache_ttl_seconds' => 300,
     'prompt_text' => 'Reply with exactly: OK',
     'prompt_timeout_seconds' => 25,
@@ -50,13 +50,27 @@ return [
 
 ## Usage
 
+### TL;DR
+
+```php
+use IllumaLaw\HealthCheckAi\AiPromptChainHealthCheck;
+use Spatie\Health\Facades\Health;
+
+Health::checks([
+    AiPromptChainHealthCheck::new()
+        ->resolveChainUsing(fn() => [
+            ['provider' => 'openai', 'model' => 'gpt-4o'],
+            ['provider' => 'anthropic', 'model' => 'claude-3-5-sonnet-latest'],
+        ]),
+]);
+```
+
 ### Prompt Chain Check
 
 Monitors a sequence of LLM providers. If the primary fails but a fallback succeeds, it returns a warning.
 
 ```php
 use IllumaLaw\HealthCheckAi\AiPromptChainHealthCheck;
-use Spatie\Health\Facades\Health;
 
 Health::checks([
     AiPromptChainHealthCheck::new()
@@ -93,8 +107,8 @@ use IllumaLaw\HealthCheckAi\AiAgentRegistryCheck;
 Health::checks([
     AiAgentRegistryCheck::new()
         ->resolveAgentsUsing(fn() => [
-             \App\Agents\LegalResearcher::class,
-             \App\Agents\ContractAnalyzer::class,
+             \App\Agents\SupportAgent::class,
+             \App\Agents\SummarizerAgent::class,
         ])
         ->hasCredentialsUsing(fn($provider) => !empty(config("ai.providers.{$provider}.api_key"))),
 ]);

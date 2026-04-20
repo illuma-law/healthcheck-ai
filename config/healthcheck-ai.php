@@ -16,7 +16,7 @@ return [
     /*
      * The text to use for the embedding canary check.
      */
-    'embedding_canary_text' => 'legal embedding health check',
+    'embedding_canary_text' => 'AI embedding health check',
 
     /*
      * Cache TTL for the prompt chain health check results in seconds.

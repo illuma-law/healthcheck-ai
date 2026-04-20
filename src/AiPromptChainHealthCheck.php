@@ -16,7 +16,7 @@ final class AiPromptChainHealthCheck extends Check
 {
     private const string CACHE_KEY = 'health:ai:prompt_chain:v1';
 
-    /** @var mixed */
+    /** @var \Closure|null */
     private $resolveChainUsing = null;
 
     private ?int $cacheTtl = null;
@@ -95,15 +95,7 @@ final class AiPromptChainHealthCheck extends Check
      */
     private function probe(): array
     {
-        if (! is_callable($this->resolveChainUsing)) {
-            return [
-                'skipped' => true,
-                'reason' => 'Chain resolver is not callable.',
-                'primary_ok' => false,
-                'winner' => null,
-                'error' => null,
-            ];
-        }
+        assert($this->resolveChainUsing instanceof \Closure);
 
         /** @var list<array{provider: string, model: string}> $chain */
         $chain = ($this->resolveChainUsing)();
@@ -124,12 +116,14 @@ final class AiPromptChainHealthCheck extends Check
         $configTimeout = config('healthcheck-ai.prompt_timeout_seconds');
         $timeout = $this->timeoutSeconds ?? (is_int($configTimeout) ? $configTimeout : 25);
 
+        $payload = null;
+
         foreach ($chain as $index => $step) {
             try {
                 $agent = new AnonymousAgent('You are a terse health probe. Follow the user instruction exactly.', [], []);
                 $agent->prompt($prompt, [], $step['provider'], $step['model'], $timeout);
 
-                return [
+                $payload = [
                     'skipped' => false,
                     'reason' => null,
                     'primary_ok' => $index === 0,
@@ -139,9 +133,11 @@ final class AiPromptChainHealthCheck extends Check
                     ],
                     'error' => null,
                 ];
+
+                break;
             } catch (Throwable $e) {
                 if ($index === count($chain) - 1) {
-                    return [
+                    $payload = [
                         'skipped' => false,
                         'reason' => null,
                         'primary_ok' => false,
@@ -152,7 +148,7 @@ final class AiPromptChainHealthCheck extends Check
             }
         }
 
-        return [
+        return $payload ?? [
             'skipped' => true,
             'reason' => 'No AI failover chain is configured.',
             'primary_ok' => false,
