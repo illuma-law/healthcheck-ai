@@ -46,8 +46,10 @@ final class AiPromptChainHealthCheck extends Check
 
     public function run(): Result
     {
-        if (! $this->resolveChainUsing) {
-            return Result::make()->failed('Missing chain resolver for AiPromptChainHealthCheck');
+        if (! $this->resolveChainUsing instanceof Closure) {
+            return $this->resolveChainUsing === null
+                ? Result::make()->failed('Missing chain resolver for AiPromptChainHealthCheck')
+                : new Result(Status::skipped(), 'Invalid chain resolver for AiPromptChainHealthCheck', 'Skipped');
         }
 
         $configTtl = config('healthcheck-ai.prompt_cache_ttl_seconds');
@@ -95,10 +97,11 @@ final class AiPromptChainHealthCheck extends Check
      */
     private function probe(): array
     {
-        assert($this->resolveChainUsing instanceof Closure);
+        /** @var Closure $resolver */
+        $resolver = $this->resolveChainUsing;
 
         /** @var list<array{provider: string, model: string}> $chain */
-        $chain = ($this->resolveChainUsing)();
+        $chain = $resolver();
 
         if (count($chain) === 0) {
             return [

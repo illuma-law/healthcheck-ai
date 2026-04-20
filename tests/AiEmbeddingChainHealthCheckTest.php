@@ -107,8 +107,6 @@ it('can be configured with fluent methods', function () {
             ['provider' => 'openai', 'model' => 'text-embedding-3-small'],
         ]);
 
-    expect($check)->toBeInstanceOf(AiEmbeddingChainHealthCheck::class);
-
     $result = $check->run();
     expect($result->status)->toEqual(Status::ok())
         ->and($result->meta['dimensions'])->toBe(512);

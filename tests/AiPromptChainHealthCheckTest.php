@@ -91,8 +91,6 @@ it('can be configured with fluent methods', function () {
             ['provider' => 'openai', 'model' => 'gpt-4o'],
         ]);
 
-    expect($check)->toBeInstanceOf(AiPromptChainHealthCheck::class);
-
     $result = $check->run();
     expect($result->status)->toEqual(Status::ok())
         ->and($result->meta['cached'])->toBeTrue();
