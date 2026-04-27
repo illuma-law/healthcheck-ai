@@ -69,9 +69,9 @@ final class AiAgentRegistryCheck extends Check
         }
 
         $meta = [
-            'agents_checked' => count($agents),
+            'agents_checked'             => count($agents),
             'without_provider_attribute' => array_slice($withoutProvider, 0, 20),
-            'missing_model_attribute' => array_slice($missingModel, 0, 20),
+            'missing_model_attribute'    => array_slice($missingModel, 0, 20),
         ];
 
         $result = Result::make()->meta($meta);

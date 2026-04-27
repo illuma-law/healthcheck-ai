@@ -39,7 +39,7 @@ return [
     'embedding_cache_ttl_seconds' => 300,
     
     // Default expected dimensions for vector embeddings
-    'embedding_dimensions' => 768,
+    'embedding_dimensions' => 1024,
     
     // The short text sent to the embedding provider
     'embedding_canary_text' => 'AI embedding health check',
