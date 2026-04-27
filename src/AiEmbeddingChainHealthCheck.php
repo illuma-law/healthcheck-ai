@@ -56,10 +56,10 @@ final class AiEmbeddingChainHealthCheck extends Check
         $payload = Cache::remember(self::CACHE_KEY, $ttl, fn (): array => $this->probe());
 
         $meta = [
-            'cached'            => true,
+            'cached' => true,
             'cache_ttl_seconds' => $ttl,
-            'dimensions'        => $payload['dimensions'],
-            'steps'             => $payload['results'],
+            'dimensions' => $payload['dimensions'],
+            'steps' => $payload['results'],
         ];
 
         $result = Result::make()->meta($meta)->shortSummary($payload['primary_ok'] ? 'Primary OK' : 'Primary degraded');
@@ -107,7 +107,7 @@ final class AiEmbeddingChainHealthCheck extends Check
 
         if (empty($chain)) {
             return [
-                'results'    => [],
+                'results' => [],
                 'primary_ok' => false,
                 'dimensions' => $dimensions,
             ];
@@ -133,12 +133,12 @@ final class AiEmbeddingChainHealthCheck extends Check
                 $vectorDim = is_array($vector) ? count($vector) : 0;
 
                 $results[] = [
-                    'index'        => $index,
-                    'provider'     => $provider,
-                    'model'        => $model,
-                    'status'       => $status,
-                    'latency_ms'   => $latencyMs,
-                    'vector_dim'   => $vectorDim,
+                    'index' => $index,
+                    'provider' => $provider,
+                    'model' => $model,
+                    'status' => $status,
+                    'latency_ms' => $latencyMs,
+                    'vector_dim' => $vectorDim,
                     'expected_dim' => $dimensions,
                 ];
 
@@ -148,18 +148,18 @@ final class AiEmbeddingChainHealthCheck extends Check
             } catch (Throwable $e) {
                 $latencyMs = round(((float) hrtime(true) - (float) $startNs) / 1_000_000, 1);
                 $results[] = [
-                    'index'      => $index,
-                    'provider'   => $provider,
-                    'model'      => $model,
-                    'status'     => 'error',
+                    'index' => $index,
+                    'provider' => $provider,
+                    'model' => $model,
+                    'status' => 'error',
                     'latency_ms' => $latencyMs,
-                    'error'      => mb_substr($e->getMessage(), 0, 256),
+                    'error' => mb_substr($e->getMessage(), 0, 256),
                 ];
             }
         }
 
         return [
-            'results'    => $results,
+            'results' => $results,
             'primary_ok' => $primaryOk,
             'dimensions' => $dimensions,
         ];

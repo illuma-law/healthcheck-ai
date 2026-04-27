@@ -65,9 +65,9 @@ final class AiPromptChainHealthCheck extends Check
         }
 
         $meta = [
-            'cached'            => true,
+            'cached' => true,
             'cache_ttl_seconds' => $ttl,
-            'winner'            => $payload['winner'],
+            'winner' => $payload['winner'],
         ];
 
         if ($payload['error']) {
@@ -105,11 +105,11 @@ final class AiPromptChainHealthCheck extends Check
 
         if (count($chain) === 0) {
             return [
-                'skipped'    => true,
-                'reason'     => 'No AI failover chain is configured.',
+                'skipped' => true,
+                'reason' => 'No AI failover chain is configured.',
                 'primary_ok' => false,
-                'winner'     => null,
-                'error'      => null,
+                'winner' => null,
+                'error' => null,
             ];
         }
 
@@ -127,12 +127,12 @@ final class AiPromptChainHealthCheck extends Check
                 $agent->prompt($prompt, [], $step['provider'], $step['model'], $timeout);
 
                 $payload = [
-                    'skipped'    => false,
-                    'reason'     => null,
+                    'skipped' => false,
+                    'reason' => null,
                     'primary_ok' => $index === 0,
-                    'winner'     => [
+                    'winner' => [
                         'provider' => $step['provider'],
-                        'model'    => $step['model'],
+                        'model' => $step['model'],
                     ],
                     'error' => null,
                 ];
@@ -141,22 +141,22 @@ final class AiPromptChainHealthCheck extends Check
             } catch (Throwable $e) {
                 if ($index === count($chain) - 1) {
                     $payload = [
-                        'skipped'    => false,
-                        'reason'     => null,
+                        'skipped' => false,
+                        'reason' => null,
                         'primary_ok' => false,
-                        'winner'     => null,
-                        'error'      => mb_substr($e->getMessage(), 0, 400),
+                        'winner' => null,
+                        'error' => mb_substr($e->getMessage(), 0, 400),
                     ];
                 }
             }
         }
 
         return $payload ?? [
-            'skipped'    => true,
-            'reason'     => 'No AI failover chain is configured.',
+            'skipped' => true,
+            'reason' => 'No AI failover chain is configured.',
             'primary_ok' => false,
-            'winner'     => null,
-            'error'      => null,
+            'winner' => null,
+            'error' => null,
         ];
     }
 }
